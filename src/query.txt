@@ -1,0 +1,4 @@
+postgresql://postgres:postgres@127.0.0.1:54322/postgres?schema=conciliacion
+username: postgres
+password: postgres
+tablename: m_cpf_contaux
