@@ -1,41 +1,45 @@
 import pandas as pd
 from sqlalchemy import create_engine
-import urllib.parse
+import socket
 
-# Parámetros de conexión CORRECTOS para SQL Server
-server = "10.10.0.23"
-database = "Nodum_Prod"
-username = "userpbi"
-password = "Zo2_Zud9_K1"
-driver = "ODBC Driver 17 for SQL Server"
+import psycopg2
 
-# Crear string de conexión
-params = urllib.parse.quote_plus(
-    f"DRIVER={{{driver}}};"
-    f"SERVER={server};"
-    f"DATABASE={database};"
-    f"UID={username};"
-    f"PWD={password}"
+
+# Configuración para PostgreSQL
+POSTGRES_CONFIG = {
+    "host": "10.10.1.162",
+    "database": "postgres",
+    "user": "postgres", 
+    "password": "postgres",
+    "port": "54322"
+}
+
+# Crear engine para PostgreSQL
+engine = create_engine(
+    f"postgresql+psycopg2://{POSTGRES_CONFIG['user']}:{POSTGRES_CONFIG['password']}@"
+    f"{POSTGRES_CONFIG['host']}:{POSTGRES_CONFIG['port']}/{POSTGRES_CONFIG['database']}"
 )
 
-# Engine CORRECTO para SQL Server
-engine = create_engine(f"mssql+pyodbc:///?odbc_connect={params}")
-
-def obtener_df_sql_por_orden():
+def obtener_df_bd():
     query = """
-        SELECT TOP 10 *
-        FROM Nodum_Prod.dbo.cpf_contaux
-        WHERE fec_doc = CONVERT(VARCHAR, '22-10-2025')
+        SELECT *
+        FROM conciliacion.m_cpf_contaux t
+        WHERE t.conciliado = FALSE
+        
     """
     
     try:
         df = pd.read_sql(query, engine)
-        print(f"✅ Leídos {len(df)} registros")
-        print(df.head())
+        print(f"✅ Leídos {len(df)} registros de la base de datos")
         return df
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Error en la consulta: {e}")
         return None
 
+
+
 # Ejecutar la función
-obtener_df_sql_por_orden()
+if __name__ == "__main__":
+    df = obtener_df_bd()
+    if df is not None:
+        print(df)
