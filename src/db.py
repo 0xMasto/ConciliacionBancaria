@@ -25,6 +25,7 @@ def obtener_df_bd():
         SELECT *
         FROM conciliacion.m_cpf_contaux t
         WHERE t.conciliado = FALSE
+        LIMIT 100
         
     """
     
