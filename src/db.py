@@ -1,7 +1,6 @@
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import socket
-
 import psycopg2
 
 
@@ -20,25 +19,31 @@ engine = create_engine(
     f"{POSTGRES_CONFIG['host']}:{POSTGRES_CONFIG['port']}/{POSTGRES_CONFIG['database']}"
 )
 
-def obtener_df_bd():
-    query = """
+def obtener_df_bd(cod_tit: str) -> pd.DataFrame | None:
+    """
+    Devuelve los registros NO conciliados de conciliacion.m_cpf_contaux
+    filtrando por:
+      - conciliado = false
+      - trim(cod_aux) = 'bancos'
+      - trim(cod_tit) = cod_tit (string)
+    """
+
+    sql = """
         SELECT *
         FROM conciliacion.m_cpf_contaux t
         WHERE t.conciliado = FALSE
-        LIMIT 100
-        
+          AND trim(t.cod_aux) = 'bancos'
+          AND trim(t.cod_tit) = :cod_tit
     """
-    
+
     try:
-        df = pd.read_sql(query, engine)
-        print(f"✅ Leídos {len(df)} registros de la base de datos")
+        df = pd.read_sql(text(sql), engine, params={"cod_tit": cod_tit})
+        print(f"📥 Leídos {len(df)} registros de BD para cod_tit={cod_tit}")
         return df
     except Exception as e:
-        print(f"❌ Error en la consulta: {e}")
+        print(f"❌ Error leyendo BD: {e}")
         return None
-
-
-
+    
 # Ejecutar la función
 if __name__ == "__main__":
     df = obtener_df_bd()

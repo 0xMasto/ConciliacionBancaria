@@ -111,7 +111,7 @@ class ComparadorApp:
             self.log(f"❌ Error procesando archivo: {e}")
             messagebox.showerror("Error", str(e))
             return False
-
+        
     # ----------------- LECTURA BD -----------------
     def consultar_bd(self):
         self.log("🔌 Conectando a la base de datos...")
@@ -121,14 +121,25 @@ class ComparadorApp:
                 self.log("❌ No hay conexión con la base.")
                 return False
 
-            # Ajusta este nombre si tu función en db.py es distinta:
-            self.df_bd = db.obtener_df_bd()
+            banco = self.combo_tipo.get().strip().lower()
 
-            if self.df_bd is None or self.df_bd.empty:
-                self.log("⚠️ La tabla BD está vacía.")
+            # Logica banco -> cod_tit
+            if banco == "itaú" or banco == "itau":
+                cod_tit = "113"
+            elif banco == "brou":
+                cod_tit = "001"
+            else:
+                messagebox.showerror("Error", f"Banco desconocido: {banco}")
                 return False
 
-            self.log(f"✅ BD cargada ({len(self.df_bd)} filas).")
+            # Llamar ahora sí al método nuevo
+            self.df_bd = db.obtener_df_bd(cod_tit)
+
+            if self.df_bd is None or self.df_bd.empty:
+                self.log(f"⚠️ La BD no devolvió registros para cod_tit={cod_tit}.")
+                return False
+
+            self.log(f"✅ BD cargada ({len(self.df_bd)} filas) para banco {banco.upper()} con cod_tit={cod_tit}")
             return True
 
         except Exception as e:

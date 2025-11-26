@@ -3,7 +3,7 @@ import re
 import unicodedata
 from pathlib import Path
 from datetime import datetime
-
+from pandas.api import types as pdt
 import pandas as pd
 from openpyxl import load_workbook
 
@@ -25,13 +25,49 @@ def _norm_header(x: str) -> str:
     return x
 
 def _normalize_amount(series: pd.Series) -> pd.Series:
+    """
+    Normaliza montos con formato latino:
+      - Soporta valores numéricos ya parseados (float/int): se devuelven casi tal cual.
+      - Soporta strings del estilo "1.234,56", "719,8", "(1.234,56)", etc.
+    """
+    # 1) Si ya es numérico (float/int), no lo rompemos:
+    if pdt.is_numeric_dtype(series):
+        return pd.to_numeric(series, errors="coerce")
+
+    # 2) Caso texto: aplicar normalización "latino"
     s = series.astype(str).str.strip()
-    neg = s.str.match(r"^\(.*\)$")
+
+    # detectar negativos entre paréntesis: (123,45)
+    neg_mask = s.str.match(r"^\(.*\)$")
     s = s.str.replace(r"^\((.*)\)$", r"\1", regex=True)
-    s = s.str.replace(".", "", regex=False).str.replace(",", ".", regex=False)
-    s = s.replace({"": pd.NA, "-": pd.NA})
+
+    def fix_one(x: str) -> str:
+        if x is None:
+            return ""
+        x = str(x).strip()
+        if x in ("", "-"):
+            return ""
+
+        # si tiene coma y punto -> asumimos miles + decimales
+        #  ej: "1.234,56" -> "1234.56"
+        if "," in x and "." in x:
+            x = x.replace(".", "").replace(",", ".")
+        # si solo tiene coma -> asumimos coma decimal
+        #  ej: "719,8" -> "719.8"
+        elif "," in x:
+            x = x.replace(".", "").replace(",", ".")
+        # si solo tiene punto -> asumimos punto decimal (lo dejamos igual)
+        #  ej: "719.8" -> "719.8"
+        return x
+
+    s = s.map(fix_one)
+    s = s.replace({"": pd.NA})
+
     out = pd.to_numeric(s, errors="coerce")
-    out[neg] = -out[neg].abs()
+
+    # aplicar signo negativo para los que venían entre paréntesis
+    out[neg_mask] = -out[neg_mask].abs()
+
     return out
 
 # ---------- mapeo flexible por patrones ----------
