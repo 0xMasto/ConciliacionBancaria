@@ -154,16 +154,24 @@ class ComparadorApp:
 
             self.df_comparacion = comparador.comparar(self.df_excel, self.df_bd)
 
-            self.log(f"📊 Coincidencias encontradas: {len(self.df_comparacion)}")
+            total = len(self.df_comparacion)
+            encontrados = self.df_comparacion["Encontrado"].sum()
+            no_encontrados = total - encontrados
 
-            if len(self.df_comparacion) == 0:
-                self.log("⚠️ No hubo coincidencias (fecha + monto).")
+            self.log("📊 RESULTADOS")
+            self.log(f"📄 Total movimientos: {total}")
+            self.log(f"✅ Coincidencias encontradas: {encontrados}")
+            self.log(f"❌ No encontrados: {no_encontrados}")
+
+            if encontrados > 0:
+                self.log("✔ Comparación completada correctamente.")
             else:
-                self.log("✅ Comparación completada.")
+                self.log("⚠ No hubo coincidencias.")
 
         except Exception as e:
             self.log(f"❌ Error en comparación: {e}")
             messagebox.showerror("Error", str(e))
+
 
     # ----------------- EXPORTACIÓN -----------------
     def exportar_comparacion(self):
